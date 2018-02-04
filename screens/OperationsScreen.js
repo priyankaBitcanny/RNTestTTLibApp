@@ -103,7 +103,7 @@ export default class Operations extends React.Component {
                 break;
 
             case this.operations.MODIFY_ADMIN_PASSCODE:
-                console.log('MODIFY_ADMIN_PASSCODE 'valueText,this.key);
+                console.log('MODIFY_ADMIN_PASSCODE ',valueText,this.key);
                 TTLock.changeAdminPasscode(this.key, valueText)
                     .then(() => Toast.show('Admin password changed'))
                     .catch(err => Toast.show('changeAdminPasscode :' + err.message));
