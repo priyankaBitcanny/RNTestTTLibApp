@@ -95,7 +95,8 @@ export default class HomeScreen extends Component<{}> {
     }
 
     getDevice(lockMac) {
-        return this.state.devices.find(device => device.address === lockMac);
+        console.log('lockMac: ' + lockMac + 'this.state.devices : ',this.state.devices);
+        return this.state.devices.[lockMac];
     }
 
     foundDevice(device) {
@@ -122,6 +123,10 @@ export default class HomeScreen extends Component<{}> {
     }
     
     getAdminEkey(){
+        if(this.state.loading){
+            return;
+        }
+        this.setState({loading:true});
         var url = 'https://managerapp-stage.rentlystaging.com/api/keys/adminKeyListByMac';
         var macs = this.state.macs;
         for (var i=0; i<macs.length; ++i) {
@@ -131,92 +136,50 @@ export default class HomeScreen extends Component<{}> {
                 url = url + '&macs[]=' + macs[i];
             }
         }
-    console.log('this.state.macs : ',url);
+        console.log('this.state.macs : ',url);
         fetch(url, {
             method: 'GET',
             headers:{'Authorization':`Bearer ${this.state.access_token}`}
         })
             .then(res => res.json())
             .then(({ keys,success, message }) => {
-                console.log("getAdminEkey success: " + success + " message : " + message + " keys : ",keys);
-                if (success)
-                {
-                    keys.forEach(item =>{
-                        const key = item.eKey;
-                        key.id = item.id;
-                        key.serialNumber = item.lockSerial;
+                this.setState({loading:false},()=>{
+                    console.log("getAdminEkey success: " + success + " message : " + message + " keys : ",keys);
+                    if (success)
+                    {
+                        keys.forEach(item =>{
+                            const key = item.eKey;
+                            key.id = item.id;
+                            key.serialNumber = item.lockSerial;
 
-                        const device = this.getDevice(item.eKey.lockMac);
-                        if(device){
-                            key.deviceName = device.name;
-                            key.settingMode = device.settingMode;
-                            key.touch = device.touch;
-                            key.battery = device.battery;
-                            key.rssi = device.rssi;
-                        }
+                            const device = this.getDevice(item.eKey.lockMac);
+                            if(device){
+                                console.log('device found',device);
+                                key.deviceName = device.name;
+                                key.settingMode = device.settingMode;
+                                key.touch = device.touch;
+                                key.battery = device.battery;
+                                key.rssi = device.rssi;
+                            }
+                            else {
+                                console.log('device not found');
+                            }
 
-                        const { data } = this.state;
-                        data.push(key);
-                        this.setState({ data });
-                    })
+                            const { data } = this.state;
+                            data.push(key);
+                            this.setState({ data });
+                        })
 
-                }
-                else {
-                    alert(message);
-                }
+                    }
+                    else {
+                        alert(message);
+                    }
+                });
+
             })
             .catch(error=>console.log(error));
 
     }
-
-    syncData(access_token){
-
-        return fetch('https://managerapp-stage.rentlystaging.com/api/keys', {
-            method: 'GET',
-            headers:{'Authorization':`Bearer ${this.state.access_token}`}
-        }).then(res => {
-            return res.json();
-        })
-
-        /*
-        return new Promise((resolve, reject)=> {
-            return resolve({
-                "keyList": [{
-                    "adminPwd": "MzMsMzMsNDAsMzYsMzIsMzYsMzcsMzIsMzcsMzIsMTEx",
-                    "aesKeyStr": "2d,e0,bf,30,b3,1b,7f,f8,b9,ac,04,ae,a8,21,cf,54",
-                    "date": 1517572407602,
-                    "deletePwd": "",
-                    "electricQuantity": 65,
-                    "endDate": 0,
-                    "keyId": 969570,
-                    "keyRight": 0,
-                    "keyStatus": 110401,
-                    "lockAlias": "RNTTLockBit_856b2a",
-                    "lockFlagPos": 0,
-                    "lockId": 60759,
-                    "lockKey": "NjUsNzEsNjcsNjgsNjQsNjcsNzIsNjcsNzAsNjgsMTU=",
-                    "lockMac": "DB:42:31:2A:6B:85",
-                    "lockName": "RNTTLockBit_856b2a",
-                    "lockVersion": {
-                        "groupId": 10,
-                        "logoUrl": "",
-                        "orgId": 6,
-                        "protocolType": 5,
-                        "protocolVersion": 3,
-                        "scene": 2,
-                        "showAdminKbpwdFlag": 1
-                    },
-                    "noKeyPwd": 8592631,
-                    "remarks": "",
-                    "startDate": 0,
-                    "timezoneRawOffset": 28800000,
-                    "userType": 110301
-                }]
-            });
-        });
-        */
-    }
-
     
     renderItem({ item: key }) {
         return(
