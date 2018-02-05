@@ -45,11 +45,11 @@ export default class HomeScreen extends Component<{}> {
         super(props);
 
         this.state = {
-            keyList: [],
             loading: false,
             access_token: props.navigation.state.params.access_token,
-            openid: props.navigation.state.params.openid,
             data: [],
+            macs:[],//"DB:42:31:2A:6B:85"
+            devices:[],
             error: null,
             refreshing: false,
             showProgress: false,
@@ -71,7 +71,6 @@ export default class HomeScreen extends Component<{}> {
             );
         } else {
             this.setState({ netConnected: true });
-            //this.getKeyList();
         }
     }
 
@@ -82,17 +81,8 @@ export default class HomeScreen extends Component<{}> {
     }
 
     componentDidMount() {
-        this.getKeyList();
-        /*if (!this.state.netConnected) {
-            Alert.alert(
-                'componentDidMount Network Error',
-                `Please check your network connection. ERRCODE: ${Error.NET_DISCONNECTED}`,
-                [{text:'OK', onPress:()=>{}}],
-                { cancelable: false }
-            );
-        } else {
-            this.getKeyList();
-        }*/
+        console.log('componentDidMount access_token : ',this.state.access_token);
+        //this.getAdminEkey();
     }
 
     componentWillUnmount() {
@@ -104,17 +94,12 @@ export default class HomeScreen extends Component<{}> {
         return this.state.data.find(key => key.lockMac === address);
     }
 
-    getSerialNumber(address) {
-        return fetch(`https://secure.rently.com/api/lockboxes/find_serial_by_mac?mac_address=${address}`)
-            .then(res => res.json())
-            .then(({ sciener_serial, error }) => {
-                if (error)
-                    throw new Error(error);
-                else return sciener_serial;
-            });
+    getDevice(lockMac) {
+        return this.state.devices.find(device => device.address === lockMac);
     }
 
     foundDevice(device) {
+
         let key = this.isInList(device.address);
 
         if (key && (key.touch !== device.touch)) {
@@ -125,98 +110,75 @@ export default class HomeScreen extends Component<{}> {
             }
             this.setState({ data });
         } else if (!key) {
+
             if (!this.state.netConnected) return;
-            this.getSerialNumber(device.address)
-                .then(serial => {
-                    if (!serial) return;
-                    const key = this.getEkey(device.address);
-                    if (!key) return;
-                    key.serialNumber = serial;
-                    key.deviceName = device.name;
-                    key.settingMode = device.settingMode;
-                    key.touch = device.touch;
-                    key.battery = device.battery;
-                    key.rssi = device.rssi;
-                    key.scienerOpenId = parseInt(-1+serial);
-                    key.lockVer = JSON.stringify(key.lockVersion);// key.lockVersion;
-                    key.userType = key.userType.toString();
-                    key.adminPs = key.adminPwd;
-                    if (this.isInList(device.address)) return;
-                    const { data } = this.state;
-                    data.push(key);
-                    this.setState({ data });
-                })
-                .catch(error => {
-                    Alert.alert(
-                        'foundDevice Network Error',
-                        `Please check your network connection. ERRCODE: ${Error.NET_FAILED_TO_GET_SERIAL}`,
-                        [{text:'Cancel', onPress:()=>{}}],
-                        { cancelable: false }
-                    );
-                });
+
+            const { macs } = this.state;
+            const { devices } = this.state;
+            macs.push(device.address);
+            devices[device.address] = device;
+            this.setState({ macs , devices},()=>this.getAdminEkey());
         }
     }
+    
+    getAdminEkey(){
+        var url = 'https://managerapp-stage.rentlystaging.com/api/keys/adminKeyListByMac';
+        var macs = this.state.macs;
+        for (var i=0; i<macs.length; ++i) {
+            if (url.indexOf('?') === -1) {
+                url = url + '?macs[]=' + macs[i];
+            }else {
+                url = url + '&macs[]=' + macs[i];
+            }
+        }
+    console.log('this.state.macs : ',url);
+        fetch(url, {
+            method: 'GET',
+            headers:{'Authorization':`Bearer ${this.state.access_token}`}
+        })
+            .then(res => res.json())
+            .then(({ keys,success, message }) => {
+                console.log("getAdminEkey success: " + success + " message : " + message + " keys : ",keys);
+                if (success)
+                {
+                    keys.forEach(item =>{
+                        const key = item.eKey;
+                        key.id = item.id;
+                        key.serialNumber = item.lockSerial;
 
+                        const device = this.getDevice(item.eKey.lockMac);
+                        if(device){
+                            key.deviceName = device.name;
+                            key.settingMode = device.settingMode;
+                            key.touch = device.touch;
+                            key.battery = device.battery;
+                            key.rssi = device.rssi;
+                        }
 
+                        const { data } = this.state;
+                        data.push(key);
+                        this.setState({ data });
+                    })
 
-    getKeyList() {
-        //this.showProgress();
-        //this.setState({ loading: true });
-        return this.syncData(this.state.access_token)
-            .then(list => {
-                console.log('list',list);
-                this.hideProgress();
-                this.setState({
-                    keyList:list.keyList,
-                    loading: false,
-                    refreshing: false,
                 }
-                /*,()=>{
-                    list.keyList.forEach((ekey,index)=>{
-                        this.getSerialNumber(ekey.lockMac)
-                            .then(serial => {
-                                if (!serial) return;
-                                const key = this.getEkey(ekey.lockMac);
-                                if (!key) return;
-                                key.serialNumber = serial;
-                                key.touch = false;
-                                key.scienerOpenId = parseInt(-1+serial);
-                                key.lockVer = JSON.stringify(key.lockVersion);// key.lockVersion;
-                                key.userType = key.userType.toString();
-                                key.adminPs = key.adminPwd;
-                                if (this.isInList(ekey.lockMac)) return;
-                                const { data } = this.state;
-                                data.push(key);
-                                this.setState({ data });
-                            })
-                            .catch(error => {
-                                Alert.alert(
-                                    'foundDevice Network Error',
-                                    `Please check your network connection. ERRCODE: ${error}`,
-                                    [{text:'Cancel', onPress:()=>{}}],
-                                    { cancelable: false }
-                                );
-                            });
-                    });
-                }*/
-                );
+                else {
+                    alert(message);
+                }
             })
-            .catch(error => {
-                this.hideProgress();
-                Alert.alert(
-                    'getKeyList Network Error',
-                    `Please check your network connection. ERRCODE: ${error}`,
-                    [
-                        {text:'Retry', onPress:this.getKeyList},
-                        {text:'Cancel', onPress:()=>{}}
-                    ],
-                    { cancelable: false }
-                );
-            });
+            .catch(error=>console.log(error));
+
     }
 
     syncData(access_token){
 
+        return fetch('https://managerapp-stage.rentlystaging.com/api/keys', {
+            method: 'GET',
+            headers:{'Authorization':`Bearer ${this.state.access_token}`}
+        }).then(res => {
+            return res.json();
+        })
+
+        /*
         return new Promise((resolve, reject)=> {
             return resolve({
                 "keyList": [{
@@ -252,106 +214,14 @@ export default class HomeScreen extends Component<{}> {
                 }]
             });
         });
-
-        /*
-        var d = new Date();
-        var n = d.getMilliseconds();
-        var lastUpdateDate = 0;
-
-
-        var postData = {"client_id":clientId,
-            "accessToken":access_token,
-            "lastUpdateDate":lastUpdateDate,
-            "date":d.getTime()
-        };
-        return fetch('https://api.ttlock.com.cn/v3/key/syncdata', {
-            method: 'POST',
-            body: JSON.stringify(postData)
-        }).then(res => {
-            console.log('syncData response',res);
-            return res.json();
-        })*/
+        */
     }
 
-    getEkey(lockMac) {
-        return this.state.keyList.find(key => key.lockMac === lockMac);
-    }
-
-    syncTime(key) {
-        this.showProgress();
-        TTLock.setLockTime(key, Date.now())
-            .then(() => TTLock.getLockTime(key))
-            .then(time => {
-                Alert.alert(
-                    'Success',
-                    `Lock ${key.serialNumber} is set for ${this.formatDate(new Date(time))}.`,
-                    [{text:'OK', onPress:()=>{}}],
-                    { cancelable: false }
-                );
-            })
-            .catch(error => {
-                const errcode =
-                    error.message === 'Lock disconnected' ? Error.BT_DISCONNECTED :
-                        error.message === 'Operation timed out' ? Error.BT_TIMED_OUT :
-                            Error.BT_ERROR;
-
-                Alert.alert(
-                    'Oops!',
-                    `Please check that Bluetooth is on. Place your palm on the keypad of the lock to wake the lock up and try again. ERRCODE: ${errcode}`,
-                    [
-                        {text:'Retry', onPress:()=>{this.syncTime(key)}},
-                        {text:'Cancel', onPress:()=>{}}
-                    ],
-                    { cancelable: false }
-                );
-            })
-            .finally(this.hideProgress)
-    }
-
-    formatDate(date) {
-        let hours = date.getHours();
-        let minutes = date.getMinutes();
-        let ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        minutes = minutes < 10 ? '0' + minutes : minutes;
-        let month;
-        switch(date.getMonth()) {
-            case 0: month = 'January'; break;
-            case 1: month = 'February'; break;
-            case 2: month = 'March'; break;
-            case 3: month = 'April'; break;
-            case 4: month = 'May'; break;
-            case 5: month = 'June'; break;
-            case 6: month = 'July'; break;
-            case 7: month = 'August'; break;
-            case 8: month = 'September'; break;
-            case 9: month = 'October'; break;
-            case 10: month = 'November'; break;
-            case 11: month = 'December'; break;
-            default: month = '';
-        }
-        let day;
-        switch(date.getDay()) {
-            case 0: day = 'Sunday'; break;
-            case 1: day = 'Monday'; break;
-            case 2: day = 'Tuesday'; break;
-            case 3: day = 'Wednesday'; break;
-            case 4: day = 'Thursday'; break;
-            case 5: day = 'Friday'; break;
-            case 6: day = 'Saturday'; break;
-            default: day = '';
-        }
-        let theDate = date.getDate();
-        let year = date.getFullYear();
-        return `${day} ${month} ${theDate}, ${year} ${hours}:${minutes} ${ampm}`;
-    }
-
+    
     renderItem({ item: key }) {
         return(
             <TouchableHighlight
                 onPress={() => {
-                    //this.syncTime(key);
                     this.props.navigation.navigate('Operations',{key});
                 }}
                 underlayColor='#EF6C00'
@@ -390,7 +260,7 @@ export default class HomeScreen extends Component<{}> {
         if (this.state.netConnected) {
             this.setState({
                 //refreshing: true
-            }, this.getKeyList)
+            }, this.getAdminEkey)
         } else {
             Alert.alert(
                 'handleRefresh Network Error',

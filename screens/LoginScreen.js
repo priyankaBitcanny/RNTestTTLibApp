@@ -9,11 +9,7 @@ import {
     Alert
 } from 'react-native';
 //import Spinner from 'react-native-loading-spinner-overlay';
-import md5 from 'react-native-md5';
 
-const clientId = '';
-const clientSecret = '';
-const redirectUri = '';
 const username = '';
 const password = '';
 
@@ -48,10 +44,12 @@ export default class LoginScreen extends Component<{}> {
     login(){
         this.showProgress();
         this.auth()
-            .then(({ access_token='', openid=0 }) => {
+            .then(({ access_token }) => {
                 this.hideProgress();
-                console.log('access_token:' + access_token + ' openid:' + openid);
-                this.props.navigation.navigate('Home', {netConnected: this.state.netConnected, access_token, openid});
+                console.log('access_token:' + access_token);
+                if(access_token){
+                    this.props.navigation.navigate('Home', {netConnected: this.state.netConnected, access_token});
+                }
             })
             .catch(error => {
                 this.hideProgress();
@@ -67,13 +65,26 @@ export default class LoginScreen extends Component<{}> {
     }
 
     auth() {
-        return fetch(`https://api.sciener.cn/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=password&username=${username}&password=${md5.hex_md5(password)}&redirect_uri=${redirectUri}`, {
+        var postData = {
+            "grant_type":"password",
+            "username":username,
+            "password":password
+        };
+        console.log('postData : ',postData);
+        return fetch(`https://managerapp-stage.rentlystaging.com/rently/oauth/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body:JSON.stringify(postData)
+        }).then(res =>res.json())
+        /*return fetch(`https://api.sciener.cn/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=password&username=${username}&password=${md5.hex_md5(password)}&redirect_uri=${redirectUri}`, {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/x-www-form-urlencoded',
             }
-        }).then(res => res.json())
+        }).then(res => res.json())*/
     }
 
     render() {
