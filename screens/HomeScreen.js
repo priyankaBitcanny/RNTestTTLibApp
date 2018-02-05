@@ -405,10 +405,6 @@ export default class HomeScreen extends Component<{}> {
         this.props.navigation.navigate('AddLock');
     }
 
-    onPressLog() {
-        this.props.navigation.navigate('ViewLog',{logsArray:[{"a":"b","c":"d"},{"e":"f","g":"h"}]});
-    }
-
     render() {
         return(
             <View style={styles.container}>
@@ -424,9 +420,6 @@ export default class HomeScreen extends Component<{}> {
                 />
                 <View style={styles.button}>
                     <Button title="Add Device" onPress={this.onPressHelp}/>
-                </View>
-                <View style={styles.button}>
-                    <Button title="Log" onPress={this.onPressLog}/>
                 </View>
                 {/*<Spinner
                     visible={this.state.showProgress}

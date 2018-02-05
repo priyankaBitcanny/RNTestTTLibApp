@@ -14,7 +14,7 @@
     "react-native-md5": "^1.0.0",
     "react-native-elements": "^0.18.5",
     "react-native-simple-toast": "0.0.5",
-    "react-native-ttlock": "file:../../ttlock_master/ttlock"
+    "react-native-ttlock": "git+https://github.com/rently-com/ttlock.git"
   },
   "devDependencies": {
     "babel-jest": "22.1.0",

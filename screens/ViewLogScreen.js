@@ -53,20 +53,14 @@ const styles = StyleSheet.create({
         fontSize: 30,
         color:'blue'
     },
-    label: {
-        height: 20,
-        width: 300,
-        textAlign: 'left',
-        marginTop: 20,
-    },
     item: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 30,
+        padding: 10,
         margin: 2,
-        borderColor: '#2a4944',
+        borderColor: 'gray',
         borderWidth: 1,
-        backgroundColor: '#d2f7f1'
+        backgroundColor: 'white'
     }
 });
