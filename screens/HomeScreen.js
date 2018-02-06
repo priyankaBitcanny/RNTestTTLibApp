@@ -153,6 +153,8 @@ export default class HomeScreen extends Component<{}> {
                     console.log("getAdminEkey success: " + success + " message : " + message + " keys : ",keys);
                     if (success)
                     {
+                        var { data } = this.state;
+                        data = [];
                         keys.forEach(item =>{
                             const key = item.eKey;
                             key.id = item.id;
@@ -171,7 +173,7 @@ export default class HomeScreen extends Component<{}> {
                                 console.log('device not found');
                             }
 
-                            const { data } = this.state;
+
                             data.push(key);
                             this.setState({ data });
                         })
@@ -199,19 +201,22 @@ export default class HomeScreen extends Component<{}> {
 
                     {
                         key.touch ?
-                        <View style={{width:30, height:30, margin:10, backgroundColor:'green', borderRadius:15}}> </View>
+                        <View style={{width:30, height:30, margin:10, backgroundColor:'blue', borderRadius:15}}/>
                             :
-                            <View style={{width:30, height:30,margin:10}}>  </View>
+                            <View style={{width:30, height:30,margin:10, backgroundColor:'gray', borderRadius:15}}/>
                     }
-                    <Text style={styles.listItemText}>
-                        {key.deviceName + ' (' + key.serialNumber + ')\nUser Type: '}
-                        {key.userType == '110301'? ' Admin' : ' User'}
-                        {'\nSettingMode: '}{ key.settingMode? 'On' : 'Off'}
-                        {'\nBattery: ' + key.battery + ',  ' +
-                        'RSSI: ' + key.rssi +
-                        '\nMAC: ' + key.lockMac
-                        }
-                    </Text>
+                    <View>
+                        <Text style={styles.listItemText}>
+                            {key.deviceName + ' (' + key.serialNumber + ')\nUser Type: '}
+                            {key.userType == '110301'? ' Admin' : ' User'}
+                            {'\nSettingMode: '}{ key.settingMode? 'On' : 'Off'}
+                            {'\nBattery: ' + key.battery + ',  ' +
+                            'RSSI: ' + key.rssi +
+                            '\nMAC: ' + key.lockMac
+                            }
+                        </Text>
+                    </View>
+
                 </View>
             </TouchableHighlight>
         );
