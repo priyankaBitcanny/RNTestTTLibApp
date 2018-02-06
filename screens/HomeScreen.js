@@ -48,7 +48,7 @@ export default class HomeScreen extends Component<{}> {
             loading: false,
             access_token: props.navigation.state.params.access_token,
             data: [],
-            macs:[],//"DB:42:31:2A:6B:85"
+            macs:[],
             devices:[],
             error: null,
             refreshing: false,
@@ -96,18 +96,24 @@ export default class HomeScreen extends Component<{}> {
 
     getDevice(lockMac) {
         console.log('lockMac: ' + lockMac + 'this.state.devices : ',this.state.devices);
-        return this.state.devices.[lockMac];
+        return this.state.devices[lockMac];
     }
 
     foundDevice(device) {
 
         let key = this.isInList(device.address);
 
-        if (key && (key.touch !== device.touch)) {
+        if (key && ((key.touch !== device.touch) || (key.rssi !== device.rssi))) {
             const { data } = this.state;
             for (let i = 0; i < data.length; i++) {
-                if (data[i].lockMac === device.address)
+                if (data[i].lockMac === device.address){
+                    data[i].deviceName = device.name;
+                    data[i].settingMode = device.settingMode;
                     data[i].touch = device.touch;
+                    data[i].battery = device.battery;
+                    data[i].rssi = device.rssi;
+                }
+
             }
             this.setState({ data });
         } else if (!key) {
@@ -193,9 +199,9 @@ export default class HomeScreen extends Component<{}> {
 
                     {
                         key.touch ?
-                        <Text style={{width:30, height:30, margin:10, padding:5, fontSize:30, backgroundColor:'green', borderRadius:15, color:'yellow'}}> + </Text>
+                        <View style={{width:30, height:30, margin:10, backgroundColor:'green', borderRadius:15}}> </View>
                             :
-                            <Text style={{width:30, height:30,margin:10, fontSize:30}}>  </Text>
+                            <View style={{width:30, height:30,margin:10}}>  </View>
                     }
                     <Text style={styles.listItemText}>
                         {key.deviceName + ' (' + key.serialNumber + ')\nUser Type: '}
@@ -203,7 +209,7 @@ export default class HomeScreen extends Component<{}> {
                         {'\nSettingMode: '}{ key.settingMode? 'On' : 'Off'}
                         {'\nBattery: ' + key.battery + ',  ' +
                         'RSSI: ' + key.rssi +
-                        '\nAddress: ' + key.lockMac
+                        '\nMAC: ' + key.lockMac
                         }
                     </Text>
                 </View>
@@ -298,7 +304,7 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     listItemText: {
-        fontSize:22,
+        fontSize:22
     },
     button: {
         margin:20,
