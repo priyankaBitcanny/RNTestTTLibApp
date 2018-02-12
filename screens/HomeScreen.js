@@ -151,10 +151,10 @@ export default class HomeScreen extends Component<{}> {
             .then(({ keys,success, message }) => {
                 this.setState({loading:false},()=>{
                     console.log("getAdminEkey success: " + success + " message : " + message + " keys : ",keys);
+                    var { data } = this.state;
+                    data = [];
                     if (success)
                     {
-                        var { data } = this.state;
-                        data = [];
                         keys.forEach(item =>{
                             const key = item.eKey;
                             key.id = item.id;
@@ -175,13 +175,15 @@ export default class HomeScreen extends Component<{}> {
 
 
                             data.push(key);
-                            this.setState({ data });
                         })
 
                     }
                     else {
-                        alert(message);
+                        //TTLock.stopScan();
+                        console.log(message);
                     }
+                    this.setState({ data });
+
                 });
 
             })
@@ -193,7 +195,8 @@ export default class HomeScreen extends Component<{}> {
         return(
             <TouchableHighlight
                 onPress={() => {
-                    this.props.navigation.navigate('Operations',{key});
+                    TTLock.removeListener('foundDevice', this.foundDevice);
+                    this.props.navigation.navigate('Operations',{access_token:this.state.access_token,key,homeWillAppear:this.homeWillAppear.bind(this)});
                 }}
                 underlayColor='#EF6C00'
             >
@@ -201,9 +204,9 @@ export default class HomeScreen extends Component<{}> {
 
                     {
                         key.touch ?
-                        <View style={{width:30, height:30, margin:10, backgroundColor:'blue', borderRadius:15}}/>
+                        <View style={{width:20, height:20, margin:5, marginRight:10, backgroundColor:'blue', borderRadius:15}}/>
                             :
-                            <View style={{width:30, height:30,margin:10, backgroundColor:'gray', borderRadius:15}}/>
+                            <View style={{width:20, height:20, margin:5, marginRight:10, backgroundColor:'gray', borderRadius:15}}/>
                     }
                     <View>
                         <Text style={styles.listItemText}>
@@ -245,8 +248,13 @@ export default class HomeScreen extends Component<{}> {
 
     }
 
-    onPressHelp() {
-        this.props.navigation.navigate('AddLock');
+    homeWillAppear(){
+        console.log('homeWillAppear');
+        TTLock.on('foundDevice', this.foundDevice);
+    }
+    onPressAddDevice() {
+        TTLock.removeListener('foundDevice', this.foundDevice);
+        this.props.navigation.navigate('AddLock',{access_token:this.state.access_token,homeWillAppear:this.homeWillAppear.bind(this)});
     }
 
     render() {
@@ -263,7 +271,7 @@ export default class HomeScreen extends Component<{}> {
                     onRefresh={this.handleRefresh}
                 />
                 <View style={styles.button}>
-                    <Button title="Add Device" onPress={this.onPressHelp}/>
+                    <Button title="Add Device" onPress={this.onPressAddDevice}/>
                 </View>
                 {/*<Spinner
                     visible={this.state.showProgress}

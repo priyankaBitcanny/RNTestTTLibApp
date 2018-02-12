@@ -25,7 +25,6 @@ export default class Operations extends React.Component {
     constructor(props) {
         super(props);
         this.key = props.navigation.state.params.key;
-        this.passcodeType = 'PERMANENT';
         this.operation = '';
         this.passcodeId;
         this.passcode;
@@ -44,6 +43,9 @@ export default class Operations extends React.Component {
             RESET_LOCK: 'Reset lock',
         };
         this.state = {
+            homeWillAppear: props.navigation.state.params.homeWillAppear,
+            access_token: props.navigation.state.params.access_token,
+            loading: false,
             modalVisible: false,
             text: '',
             text2: '',
@@ -60,6 +62,37 @@ export default class Operations extends React.Component {
     componentWillMount(){
         console.log("this.state.key => ",this.key);
     }
+
+    resetEkey(){
+        if(this.state.loading){
+            return;
+        }
+        this.setState({loading:true});
+        var url = 'https://managerapp-stage.rentlystaging.com/blue/api/locks/'+this.key.serialNumber;
+
+        console.log('resetEkey : ',url);
+        fetch(url, {
+            method: 'DELETE',
+            headers:{'Authorization':`Bearer ${this.state.access_token}`}
+        })
+            .then(res => res.json())
+            .then(({ success, message }) => {
+                this.setState({loading:false},()=>{
+                    console.log("resetEkey success: " + success + " message : " + message);
+                    if (success)
+                    {
+                        Alert.alert("Lock reset successfully");
+                    }
+                    else {
+                        Alert.alert(message);
+                    }
+                });
+
+            })
+            .catch(error=>Alert.alert(error));
+
+    }
+
 
     setModalVisible(visible) {
         this.setState({modalVisible: visible});
@@ -81,32 +114,32 @@ export default class Operations extends React.Component {
             case this.operations.ADD_PERIOD_PASSCODE:
                 TTLock.addPeriodPasscode(this.key, valueText, start, end)
                     .then(() => Toast.show('Password added successfully'))
-                    .catch(err => Toast.show('addPeriodPasscode :' + err.message));
+                    .catch(err => Toast.show(err.message));
                 break;
 
             case this.operations.MODIFY_PASSCODE:
                 TTLock.changePasscode(this.key, 3, valueText, valueText2, start, end)
                     .then(() => Toast.show('Password changed to ' + valueText2 + ' successfully'))
-                    .catch(err => Toast.show('changePasscode :' + err.message));
+                    .catch(err => Toast.show(err.message));
                 break;
 
             case this.operations.DELETE_PASSCODE:
                 TTLock.deletePasscode(this.key, valueText)
                     .then(() => Toast.show('Password deleted successfully: ' + valueText))
-                    .catch(err => Toast.show('deletePasscode :' + err.message));
+                    .catch(err => Toast.show(err.message));
                 break;
 
             case this.operations.SET_AUTOLOCK_TIME:
                 TTLock.setAutoLockTime(this.key,parseInt(valueText))
                     .then(() => Toast.show('auto-lock set for ' + valueText + ' seconds'))
-                    .catch(err => Toast.show('setAutoLockTime :' + err.message));
+                    .catch(err => Toast.show(err.message));
                 break;
 
             case this.operations.MODIFY_ADMIN_PASSCODE:
                 console.log('MODIFY_ADMIN_PASSCODE ',valueText,this.key);
                 TTLock.changeAdminPasscode(this.key, valueText)
                     .then(() => Toast.show('Admin password changed'))
-                    .catch(err => Toast.show('changeAdminPasscode :' + err.message));
+                    .catch(err => Toast.show(err.message));
                 break;
 
             default:
@@ -179,6 +212,7 @@ export default class Operations extends React.Component {
 
                 <FlatList
                     data={Object.values(this.operations)}
+                    ListHeaderComponent={this.renderHeader}
                     renderItem={({ item, index }) =>
                         <TouchableHighlight onPress={() => {
                             this.operation = Object.values(this.operations)[index];
@@ -198,6 +232,7 @@ export default class Operations extends React.Component {
                                     break;
 
                                 case this.operations.UNLOCK:
+                                    console.log('Priyanka UNLOCK this.key',this.key);
                                     TTLock.unlock(this.key)
                                         .then(() => {
                                             Alert.alert("Unlock successful");
@@ -282,7 +317,7 @@ export default class Operations extends React.Component {
                                             {text: 'Reset', onPress: () => {
                                                     TTLock.resetLock(this.key)
                                                         .then(() => {
-                                                            Alert.alert("Lock reset successfully");
+                                                            this.resetEkey();
                                                         })
                                                         .catch(err => Alert.alert(err.message));
                                                 }}
